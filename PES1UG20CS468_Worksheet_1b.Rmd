@@ -1,0 +1,78 @@
+---
+title: "UE20CS312 - Data Analytics - Worksheet 1b - Part 1 - Exploring data with R"
+subtitle:"PES University"
+author: "Tellakula Mohan Sai, Dept. of CSE - PES1UG20CS468"
+date: "2022-08-23"
+output: pdf_document
+---
+
+```{r}
+library(ggpubr)
+library(dplyr)
+df <- read.csv('road_accidents_india_2016.csv', row.names=1)
+```
+
+## Problem-1
+Find the total number of accidents in each state for the year 2016 and display your results. Make sure
+to display all rows while printing the dataframe. Print only the necessary columns. (Hint: use the grep
+command to help filter out column names).
+```{r}
+col<-grep("Total.Accidents",names(df))
+df["Total.Accidents"]=rowSums(df[col])
+col<-append(col,2,after=0)
+col<-append(col,27)
+print(df[col])
+```
+
+## Problem-2
+
+```{r}
+col2<-grep("Persons.Killed",names(df))
+df["Total Deaths"] = rowSums(df[col2])
+```
+
+
+```{r}
+df["mist..foggy..rate"]=df$Mist..Foggy...Total.Accidents/(df$Total.Accidents)
+df["fatality rate"]=df["Total Deaths"]/df["Total.Accidents"]
+result = cor.test(df$`fatality rate`,df$mist..foggy..rate,method = "pearson")
+print(result)
+```
+There is positive correlation between mist..foggy..rate and fatality rate.
+```{r}
+ggscatter(df,"fatality rate","mist..foggy..rate",cor.coef=TRUE,cor.coeff.args = list(method="pearson"))
+```
+## Problem-3
+```{r}
+df["rank_accidents"]=rank(-df$Total.Accidents,ties.method = "first")
+df["rank_fatalities"]=rank(-df$`Total Deaths`,ties.method = "first")
+```
+
+```{r}
+coeff = cor(df$rank_accidents,df$rank_fatalities,method = "spearman")
+cor.test(df$rank_accidents,df$rank_fatalities,method = "spearman")
+```
+
+```{r}
+t_statistic <- (coeff-0.2)/sqrt((1-coeff^2)/(nrow(df)-2))
+print(t_statistic)
+```
+```{r}
+
+```
+## Problem-4
+```{r}
+library(ltm)
+df["hail_accident_occcur"]<-ifelse(df$Hail.Sleet...Total.Accidents>0,1,0)
+cor.test(df$Rainy...Total.Accidents,df$hail_accident_occcur)
+biserial.cor(df$Rainy...Total.Accidents,df$hail_accident_occcur)
+```
+There is a positive correlation between hail_accident_occcur and Rainy...Total.Accidents.
+And Bi-Serial Coefficient is  -0.1429725
+## Problem-5
+```{r}
+library(psych)
+df["duststorm_accident_occcur"]<-ifelse(df$Dust.Storm...Total.Accidents>0,1,0)
+conmat<-table(df$hail_accident_occcur,df$duststorm_accident_occcur)
+phi(conmat)
+```

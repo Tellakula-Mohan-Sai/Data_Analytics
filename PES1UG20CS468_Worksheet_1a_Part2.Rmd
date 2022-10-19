@@ -1,0 +1,255 @@
+---
+title: "UE20CS312 - Data Analytics - Worksheet 1a - Part 2 - EDA with R | ANOVA"
+subtitle:"PES University"
+author: "Tellakula Mohan Sai,Dept. of CSE - PES1UG20CS468"
+output: pdf_document
+date: "2022-08-21"
+---
+
+```{r}
+library(tidyverse)
+cbc_df <- read_csv("CharlesBookClubDataset.csv")
+head(cbc_df)
+```
+
+## Problem-1
+Generate an understanding of the dataset via a summary of its features. Find the count, missing count,
+minimum, 1st quartile, median, mean, 3rd quartile, max and standard deviation of all relevant columns.
+Separately, print the total number of missing values in each column.
+```{r}
+summary(cbc_df)
+```
+
+```{r}
+colSums(is.na(cbc_df))
+```
+
+## Problem-2
+Replace missing values within the Recency, Frequency, and Monetary features with suitable values. Explain
+your reasoning behind the method of substitution used. Hint: Try plotting the distribution of the values in
+each feature using the hist function. Think about how to best deal with data imputation. Also, plot the
+distribution of feature values after imputation.
+```{r}
+hist(cbc_df$M)
+hist(cbc_df$R)
+hist(cbc_df$F)
+```
+
+```{r}
+cbc_df$M[is.na(cbc_df$M)]<-mean(cbc_df$M,na.rm=TRUE)
+cbc_df$R[is.na(cbc_df$R)]<-median(cbc_df$R,na.rm = TRUE)
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+cbc_df$F[is.na(cbc_df$F)]<-Mode(cbc_df$F)
+```
+
+```{r}
+hist(cbc_df$M)
+hist(cbc_df$R)
+hist(cbc_df$F)
+```
+For the column Monetary the histogram was not skewed and mean and median values are almost same so we can use either to replace the na values.
+For the column Recency the histogram was left skewed and median value was greater than the mean. Therefore we use median to replace the na values
+For the column Frequency we can see only 1 column with all values which implies there are multiple values being repeated which insists us to use mode to replace the na values.
+
+## Problem -3
+Discretize the continuous values of Monetary, Recency, and Frequency into appropriate bins, and create three
+new columns Mcode, Rcode and Fcode respectively, for the discretized values. Explicitly mention the number
+of bins used and explain the choice for the bin size. Print out the summary of the newly created columns.
+Hint: Use the cut function to break on preset breakpoints. What are the most optimum breakpoints you can
+choose? Try to think of a statistical function that provides these breakpoints for optimum binning.
+```{r}
+h_1 = 2*IQR(cbc_df$M)/length(cbc_df$M)^1/3
+bin_M = (max(cbc_df$M)-min(cbc_df$M))/h_1
+h_2 = 2*IQR(cbc_df$R)/length(cbc_df$R)^1/3
+bin_R = (max(cbc_df$R)-min(cbc_df$R))/h_2
+h_3 = 2*IQR(cbc_df$F)/length(cbc_df$F)^1/3
+bin_F = (max(cbc_df$F)-min(cbc_df$F))/h_3
+
+```
+
+```{r}
+cbc_df["MCode"]=cut(cbc_df$M,breaks = bin_M-1)
+cbc_df["RCode"]=cut(cbc_df$R,breaks = bin_R-1)
+cbc_df["FCode"]=cut(cbc_df$F,breaks = bin_F-1)
+summary(cbc_df[c("MCode","RCode","FCode")])
+```
+
+We can use Freedman-Diaconis rule to calculate the optimal no of bins, from which we can find the no of break points.
+
+## Problem-4
+The marketing team heavily relies on the RFM variables of the recency of last purchase, total number of
+purchases, and total money spent on purchases to gauge the health of the members of the book club. Increases
+in either the frequency of purchases or monetary spend and decreases in time since last purchase across the
+customer base, will intuitively lead to more sales for the business.
+4.1 Bar Graphs (1 point) Create and visualize histograms for the discretized Recency, Frequency,
+Monetary features. Also create one for the FirstPurch feature.
+4.2 Box Plot (1 point) Transform the Florence variable into a categorical feature that can take up
+the values True or False. Create and visualize horizontal box plots for the original Recency, Frequence,
+Monetary and FirstPurch features against the Florence variable. Hint: To transform Florence, use the
+concept of factors in R and set the labels True and False.
+4.3 Density Plot (1 point)
+FirstPurch features.
+```{r}
+library('ggplot2')
+hist(as.numeric(cbc_df$MCode))
+hist(as.numeric(cbc_df$RCode))
+hist(as.numeric(cbc_df$FCode))
+hist(as.numeric(cbc_df$FirstPurch))
+```
+
+```{r}
+cbc_df$Florence = factor(cbc_df$Florence,labels=c(TRUE,FALSE))
+```
+
+```{r}
+col<-c("M","R","F","FirstPurch")
+boxplot(cbc_df[col],cbc_df$Florence,horizontal = TRUE)
+```
+
+```{r}
+den_1<-density(cbc_df$M)
+plot(den_1,col="red",main="Monetary")
+den_2<-density(cbc_df$R)
+plot(den_2,col="red",main="")
+den_3<-density(cbc_df$F)
+plot(den_3,col="red",main="Density Plot")
+den_4<-density(cbc_df$FirstPurch)
+plot(den_4,col="red",main="Density Plot")
+```
+
+# Part-II ANOVA
+
+## Problem-1
+Captain Holt provided a file containing the names of a few People of Interest and the number of items
+logged at various evidence lockers of various precincts pertaining to them. He also instructs Peralta and Diaz
+to look into the file as he was told it should contain more information.
+Scully decided to use ANOVA.
+For this problem, use the data file named Scenario 1.csv in the data repository. Load the following libraries
+before moving on and read the dataset,
+1. Consider the dataset. Which type of ANOVA can Scully use? (Justify why the particular test)
+2. What function(s) could have been used by Scully for ANOVA if he uses the R programming language?
+3. What does the output of this/these functions tell Scully? (Specify hypotheses and what each column in
+the summary of the output means considering 5% significance)
+```{r}
+library(ggpubr)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(broom)
+library(car)
+data <- read.csv('Scenario 1.csv')
+```
+
+```{r}
+head(data)
+```
+
+```{r}
+data$POI<-as.factor(data$POI)
+str(data)
+```
+
+```{r}
+data_mod = data %>% group_by(POI)
+head(data_mod)
+```
+
+```{r}
+res.aov<-aov(No.of.items~POI,data = data_mod)
+summary(res.aov)
+```
+
+1.  Scully should use one-way ANOVA test as there is only one set of levels of factors in the dataset.
+
+2.  aov() can be used by Scully to get the results of one_way ANOVA test.
+
+3.  The column:
+
+    df indicates Degrees of freedom,
+
+    Sum Sq indicates sum of squares,
+
+    Mean Sq indicates mean of squares,
+
+    F -value is the F ratio value of F_test,
+
+    P is the probability value of the test.
+
+    Here the null hypothesis is: Mean of the all samples are same
+
+    Alternate hypothesis: Not all means of samples are equal.
+
+    According to the P-value, as it greater than significance value(alpha=0.05),i.e P>0.05,
+
+    we can't reject the Null hypothesis.Therefore means of all the samples are same.
+
+## Problem-2
+Peralta and Diaz find a member of the family, a certain Frank Pentangeli, through Doug Judy. They discovered
+that the famiglia had altered this file resulting in invalid results. The original file was then recovered by the
+squad and was sent to Scully and Hitchcock for analysis. To their surprise they discovered that the file also
+had additional column of which gives the priority.
+The dataset has three columns:
+• First column has the Person of Interest(POI) in the Mafia
+• Second column has the number of evidence items collected in particular evidence locker (evidence
+lockers are present across the city and many precincts have multiple squads working on the mafia, so
+one POI has multiple entries).
+• Third column gives the Priority given to collect the evidence by a particular squad with respect to a
+POI.
+1. Consider the data. Which type of ANOVA can Scully use? (Justify why the particular test)
+2. What function(s) could have been used by Scully for the ANOVA if he uses the R programming
+language?
+3. What does the output of this/these functions tell Scully? (Specify hypotheses and what each column in
+the summary of the output means considering 5% significance)
+4. Hitchcock thinks that Scully has missed a task which completes the ANOVA test. What should Scully
+have thought of? Hint: Philosophically, a hypothesis is a proposition made as a basis for reasoning,
+without any assumption of its truth.
+    ```{r}
+    data_2<-read.csv("Scenario 2.csv")
+    head(data_2)
+    ```
+
+    ```{r}
+    data_2$POI<-as.factor(data_2$POI)
+    data_2$Priority<-as.factor(data_2$Priority)
+    res.aov_2<-aov(No.of.items~POI+Priority+POI:Priority,data=data_2)
+    summary(res.aov_2)
+    ```
+1.  Scully should use two-way ANOVA test as there are two set of levels of factors in the dataset.
+
+2.  aov() can be used by Scully to get the results of two_way ANOVA test.
+
+3.  The column:
+
+    df indicates Degrees of freedom,
+
+    Sum Sq indicates sum of squares,
+
+    Mean Sq indicates mean of squares,
+
+    F -value is the F ratio value of F_test,
+
+    P is the probability value of the test.
+
+    Here the null hypothesis is: Mean of the all samples are same
+
+    Alternate hypothesis: Not all means of samples are equal.
+
+    According to the P-value, as it greater than significance value(alpha=0.05),i.e P<0.05,
+
+    we reject the Null hypothesis.Therefore means of all the samples are same.
+    
+## Problem-3
+Hitchcock also wanted to compare the number of items collected for each pair of Person of Interest and priority.
+He decided to follow the common practice of doing a Tukey’s HSD . The Tukey’s Honestly-Significant-
+Difference[TukeyHSD] test lets us see which groups are different from one another.
+What insights did Hitchcock gain after doing the Tukey’s HSD? (The TukeyHSD function can be used to do
+this test and the output of this function can be represented graphically using the plot function.)
+```{r}
+plot(TukeyHSD(res.aov_2,conf.level=.95),las=2)
+TukeyHSD(res.aov_2)
+```
+1.From above TukeyHSD for Priority, we observe that the pairs– high-critical,low-critical and med-critical are significant(i.e. have a p-value < 0.05)
+2. From above TukeyHSD for POI, we observe that all the pairs are insignificant(i.e. have a p-value > 0.05)

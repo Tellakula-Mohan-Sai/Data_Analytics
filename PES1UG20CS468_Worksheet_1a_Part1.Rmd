@@ -1,0 +1,83 @@
+---
+title: "UE20CS312 - Data Analytics - Worksheet 1a - Part 1 - Exploring data with R"
+author: "Tellakula Mohan Sai,Dept. of CSE - PES1UG20CS468"
+date: "2022-08-17"
+output:
+  html_document:
+    df_print: paged
+subtitle: PES University
+---
+## Problem-1
+Get the summary statistics (mean, median, mode, min, max, 1st quartile, 3rd quartile and standard deviation)
+for the dataset. Calculate these only for the numerical columns [Audience Country, Authentic Engagement
+and Engagement Average]. What can you determine from the summary statistics? How does your Instagram
+stats hold up with the top 1000 :P ?
+```{r}
+library(tidyverse)
+data <- read_csv("top_1000_instagrammers.csv")
+summary(data)
+```
+
+```{r}
+col<-c("Audience Country","Authentic Engagement","Engagement Avg.")
+summary(data[col])
+```
+Top 1000 instagrammers have an average following of 26044600.
+50% of the instagrammers have a following of 14100000.
+50% of the instagrammers have authentic engagement of more than 316050 and engagement
+average of more than 463300.
+Top 25% of Instagrammers have average engagement of more than 850125.
+
+According to the summary my instagram account will be an outlier in this dataset bcs I have only 100 followers.
+
+## Problem-2
+What are the top 3 audience countries that follow most of the top 1000 instagrammers? Hint: Go back to
+bar graph created earlier. Use R to calculate the percentage of the top 1000 instagrammers that have the top
+1 audience country.
+```{r}
+library('ggplot2')
+data$`Audience Country`=replace_na(data$`Audience Country`," ")
+ggplot(data, aes(x=`Audience Country`)) + geom_bar() + coord_flip()
+```
+The Top three Audience Countries are:
+1.United States
+2.India
+3.Brazil
+```{r}
+US_instagrammers = data[data$`Audience Country`=="United States",1]
+fraction<-(nrow(US_instagrammers)/nrow(data))*100
+print(fraction)
+```
+27.7% of Top 1000 Instagrammers have majority audience based in USA.
+
+##Problem-3
+Create a horizontal box plot using the column Authentic.Engagement. What inferences can you make from
+this box and whisker plot?
+```{r}
+library('moments')
+ggplot(data,aes(y=`Authentic Engagement`))+geom_boxplot()+coord_flip()
+```
+Most of the values lie below the mean which is 566199.
+
+```{r}
+print(skewness(data$`Authentic Engagement`))
+```
+Distribution of Authentic Engagement is right skewed with skewness of 6.997299
+
+## Problem-4
+Create a histogram where the x-axis contains the Audience Country and y-axis contains the total follower
+count for accounts with that Audience Country. Which country is associated with the most amount of
+followers? Hint: Recall the concept of groupby() in Pandas. Try using the aggregate() function in R to
+achieve the same goal. What is the total for India and what rank does it fall compared to other countries?
+```{r}
+data_c = aggregate(data$Followers,list(data$`Audience Country`),FUN='max')
+ggplot(data_c,aes(`Group.1`,`x`))+geom_bar(stat = 'identity')
+```
+The country with highest number of Followers is India.
+
+## Conclusion
+In a few short sentences, describe your Instagram profile (category, followers, estimated engagement). Compare
+your profile to the analysis done of the top 1000 profiles. If you were tasked to becoming an influencer, what
+would be the best way for you to increase your followers and user engagement?
+
+To have higher followers and user engagement on instagram posting instagram stories,creating new content regularly,etc are the best ways.
